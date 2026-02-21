@@ -1,0 +1,46 @@
+
+name: damascus_dehan_app
+description: "تطبيق توقيت الدهان لمدينة دمشق - بإشراف المهندس ياسر"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # المكتبات الأساسية لعمل المين دارت (Main.dart)
+  
+  # 1. لجلب البيانات من موقع الدهان عبر الإنترنت
+  http: ^1.1.0
+
+  # 2. لتحليل محتوى HTML المستخرج من موقع الدهان (Web Scraping)
+  html: ^0.15.4
+
+  # 3. لتنسيق الوقت والتاريخ (نظام 24 ساعة)
+  intl: ^0.18.1
+
+  # 4. لتشغيل صوت الأذان (adhan.mp3)
+  audioplayers: ^5.2.1
+
+  # 5. لإنشاء رابط المشاركة الذي صممناه
+  share_plus: ^7.1.0
+
+  # 6. للتحكم في الروابط الخارجية
+  url_launcher: ^6.2.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+
+  # تعريف الملحقات (Assets) الضرورية للمشروع
+  assets:
+    - assets/adhan.mp3
+    # - assets/bg_damascus.jpg (إذا أردت إضافة صورة خلفية من جهازك)
