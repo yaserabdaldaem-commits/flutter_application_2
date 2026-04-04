@@ -2,10 +2,8 @@ name: damascus_dehan_app
 description: "تطبيق توقيت الدهان لمدينة دمشق - بإشراف المهندس ياسر"
 publish_to: 'none'
 
-# إصدار التطبيق
 version: 1.0.0+1
 
-# بيئة العمل
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
@@ -13,28 +11,25 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # --- المكتبات التي يحتاجها الكود المدمج ---
-
-  # 1. لجلب البيانات من الإنترنت (API)
+  # --- المكتبات الأساسية الواجهة والاتصال ---
   http: ^1.1.0
-
-  # 2. لتشغيل صوت الأذان (adhan.mp3)
   audioplayers: ^5.2.1
-
-  # 3. لمشاركة رابط التطبيق مع الآخرين
   share_plus: ^7.1.0
-
-  # 4. لتوليد باركود (QR Code) المشاركة داخل التطبيق
   qr_flutter: ^4.1.0
-
-  # 5. لتنسيق التاريخ والوقت (نظام 24 ساعة)
   intl: ^0.18.1
-
-  # 6. لفتح الروابط الخارجية (مثل رابط GitHub)
   url_launcher: ^6.2.5
-
-  # 7. أيقونات إضافية (اختياري)
   cupertino_icons: ^1.0.2
+  
+  # --- ميزة التخزين المحلي للأوفلاين ---
+  shared_preferences: ^2.2.2
+
+  # --- خدمات الفايربيس (إصدارات متوافقة) ---
+  firebase_core: ^4.5.0
+  cloud_firestore: ^6.1.3
+  firebase_remote_config: ^6.1.4
+  
+  # --- إدارة المنبهات والعمل في الخلفية ---
+  android_alarm_manager_plus: ^4.0.3
 
 dev_dependencies:
   flutter_test:
@@ -42,10 +37,8 @@ dev_dependencies:
   flutter_lints: ^2.0.0
 
 flutter:
-  # تفعيل تصميم Material Design
   uses-material-design: true
 
-  # --- تعريف الملحقات الضرورية (Assets) ---
+  # --- تعريف الخطوط والصور والملفات الصوتية ---
   assets:
     - assets/adhan.mp3
-    # تأكد من وضع ملف adhan.mp3 داخل مجلد اسمه assets في مشروعك
