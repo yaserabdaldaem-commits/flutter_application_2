@@ -1,272 +1,265 @@
-import 'package:flutter/material.dart';
-import 'dart:ui';
-import 'dart:convert';
 import 'dart:async';
-import 'package:http/http.dart' as http;
-import 'package:qr_flutter/qr_flutter.dart';
+import 'dart:ui';
+
 import 'package:audioplayers/audioplayers.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // المكتبة الجديدة
+import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
-// --- استدعاء جنود الفايربيس والمنبه الخلفي ---
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_remote_config/firebase_remote_config.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'core/app_config.dart';
+import 'features/prayer/data/prayer_models.dart';
+import 'features/prayer/data/prayer_repository.dart';
+import 'features/prayer/services/adhan_scheduler.dart';
 
-@pragma('vm:entry-point')
-void playAdhanCallback() async {
-  final player = AudioPlayer();
-  try {
-    await player.play(AssetSource('adhan.mp3'));
-    debugPrint("صداح الأذان في الخلفية بنجاح يا مدير!");
-  } catch (e) {
-    debugPrint("خطأ في تشغيل صوت الأذان: $e");
-  }
-}
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-    await AndroidAlarmManager.initialize();
-    debugPrint("الأنظمة جاهزة للعمل بإشراف المبرمج ياسر!");
-  } catch (e) {
-    debugPrint("فشل تشغيل الأنظمة: $e");
-  }
-
-  runApp(const MaterialApp(
-    home: DamascusLiveApp(),
-    debugShowCheckedModeBanner: false,
-  ));
+  await AdhanScheduler.initialize();
+  runApp(const DamascusApp());
 }
 
-class DamascusLiveApp extends StatefulWidget {
-  const DamascusLiveApp({super.key});
+class DamascusApp extends StatelessWidget {
+  const DamascusApp({super.key});
+
   @override
-  State<DamascusLiveApp> createState() => _DamascusLiveAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: AppConfig.appName,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFCDA944),
+          brightness: Brightness.dark,
+        ),
+      ),
+      home: const PrayerHomePage(),
+    );
+  }
 }
 
-class _DamascusLiveAppState extends State<DamascusLiveApp> {
-  Prayer? prayerData;
-  bool isLoading = true;
-  String cloudMessage = "جاري الاتصال بالسحاب...";
-  String nextPrayerName = "جاري الحساب...";
-  final String appLink =
-      "https://github.com/yaserabdaldaem-commits/flutter_application_2";
+class PrayerHomePage extends StatefulWidget {
+  const PrayerHomePage({super.key});
+
+  @override
+  State<PrayerHomePage> createState() => _PrayerHomePageState();
+}
+
+class _PrayerHomePageState extends State<PrayerHomePage> {
+  final PrayerRepository _repository = const PrayerRepository();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  PrayerResponse? _prayerResponse;
+  bool _isLoading = true;
+  String? _errorMessage;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
-    _initialLoad();
+    _loadPrayerTimes();
   }
 
-  Future<void> _initialLoad() async {
-    // 1. تحميل البيانات من الذاكرة أولاً (لسرعة الفتح)
-    await _loadFromLocal();
-    // 2. تحديث البيانات من الإنترنت في الخلفية
-    await fetchPrayerTimes();
-    await _fetchRemoteConfig();
-    _logVisitToFirebase();
-
-    if (prayerData != null) {
-      _scheduleAllPrayers();
-      _calculateNextPrayer();
-    }
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
-  // --- ميزة التخزين المحلي (Offline Support) ---
-  Future<void> _loadFromLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? cached = prefs.getString('prayer_cache');
-    if (cached != null) {
+  Future<void> _loadPrayerTimes({bool forceRefresh = false}) async {
+    if (forceRefresh) {
       setState(() {
-        prayerData = prayerFromJson(cached);
-        isLoading = false;
+        _isRefreshing = true;
+        _errorMessage = null;
+      });
+    } else {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
       });
     }
-  }
 
-  Future<void> fetchPrayerTimes() async {
     try {
-      final url = Uri.parse(
-          'https://api.aladhan.com/v1/timingsByCity?city=Damascus&country=Syria&method=3');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('prayer_cache', response.body); // حفظ للمستقبل
-
-        setState(() {
-          prayerData = prayerFromJson(response.body);
-          isLoading = false;
-          _calculateNextPrayer();
-        });
+      if (!forceRefresh) {
+        final cachedResponse = await _repository.loadCachedPrayerTimes();
+        if (cachedResponse != null && mounted) {
+          setState(() {
+            _prayerResponse = cachedResponse;
+            _isLoading = false;
+          });
+          unawaited(_scheduleAlarms(cachedResponse));
+        }
       }
-    } catch (e) {
-      setState(() => isLoading = false);
-      debugPrint("خطأ في جلب المواقيت: $e");
+
+      final response = await _repository.fetchLatestPrayerTimes();
+
+      if (!mounted) return;
+
+      setState(() {
+        _prayerResponse = response;
+        _isLoading = false;
+        _isRefreshing = false;
+      });
+
+      await _scheduleAlarms(response);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = _prayerResponse == null ? error.toString() : null;
+        _isLoading = false;
+        _isRefreshing = false;
+      });
+
+      if (_prayerResponse != null) {
+        _showSnackBar(
+            'تم استخدام البيانات المحلية بسبب تعذر التحديث من الإنترنت.');
+      }
     }
   }
 
-  // --- ميزة حساب الصلاة القادمة ---
-  void _calculateNextPrayer() {
-    if (prayerData == null) return;
-    final now = DateTime.now();
-    final t = prayerData!.data.timings;
-
-    Map<String, String> times = {
-      "الفجر": t.fajr,
-      "الظهر": t.dhuhr,
-      "العصر": t.asr,
-      "المغرب": t.maghrib,
-      "العشاء": t.isha
-    };
-
-    String foundName = "الفجر";
-    for (var entry in times.entries) {
-      final parts = entry.value.split(':');
-      final prayerTime = DateTime(now.year, now.month, now.day,
-          int.parse(parts[0]), int.parse(parts[1]));
-      if (prayerTime.isAfter(now)) {
-        foundName = entry.key;
-        break;
-      }
-    }
-    setState(() => nextPrayerName = "الصلاة القادمة: $foundName");
-  }
-
-  void _scheduleAllPrayers() async {
-    if (prayerData == null) return;
-
-    // تنظيف المنبهات القديمة لمنع التكرار
-    for (int i = 0; i < 5; i++) await AndroidAlarmManager.cancel(i);
-
-    final t = prayerData!.data.timings;
-    List<String> times = [t.fajr, t.dhuhr, t.asr, t.maghrib, t.isha];
-    final now = DateTime.now();
-
-    for (int i = 0; i < times.length; i++) {
-      final parts = times[i].split(':');
-      var scheduleTime = DateTime(now.year, now.month, now.day,
-          int.parse(parts[0]), int.parse(parts[1]));
-
-      if (scheduleTime.isBefore(now))
-        scheduleTime = scheduleTime.add(const Duration(days: 1));
-
-      await AndroidAlarmManager.oneShotAt(
-        scheduleTime,
-        i,
-        playAdhanCallback,
-        exact: true,
-        wakeup: true,
-        allowWhileIdle: true,
-        rescheduleOnReboot: true,
+  Future<void> _scheduleAlarms(PrayerResponse response) async {
+    try {
+      final scheduled = await AdhanScheduler.schedulePrayerAlarms(
+        response,
+        onFeedback: (message) {
+          if (!mounted) return;
+          _showSnackBar(message);
+        },
       );
+
+      if (!scheduled && mounted) {
+        _showSnackBar(
+          'Exact alarm scheduling is disabled. Open system settings and allow exact alarms for this app.',
+        );
+      }
+    } catch (scheduleError) {
+      if (!mounted) return;
+      _showSnackBar(
+        'تم تحميل البيانات، لكن جدولة التنبيهات تحتاج مراجعة الإذن أو إعدادات النظام.',
+      );
+      debugPrint('Alarm scheduling error: $scheduleError');
     }
-    debugPrint("تمت إعادة جدولة المنبهات بنجاح.");
   }
 
-  // --- Remote Config & Firebase ---
-  Future<void> _fetchRemoteConfig() async {
-    final remoteConfig = FirebaseRemoteConfig.instance;
+  Future<void> _playInAppAdhan() async {
     try {
-      await remoteConfig.setConfigSettings(RemoteConfigSettings(
-        fetchTimeout: const Duration(seconds: 10),
-        minimumFetchInterval: Duration.zero,
-      ));
-      await remoteConfig.fetchAndActivate();
-      setState(() => cloudMessage = remoteConfig.getString('app_message'));
-    } catch (e) {
-      debugPrint("خطأ Remote Config: $e");
+      await _audioPlayer.stop();
+      await _audioPlayer.play(
+        AssetSource(AppConfig.adhanAsset),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar('تعذر تشغيل الأذان داخل التطبيق.');
+      debugPrint('In-app audio error: $error');
     }
   }
 
-  void _logVisitToFirebase() {
-    FirebaseFirestore.instance.collection('visits').add({
-      'time': DateTime.now().toString(),
-      'city': 'Damascus',
-      'user': 'Yasser'
-    });
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final timings = prayerData?.data.timings;
-    final Map<String, String> displayTimes = timings == null
-        ? {}
-        : {
-            "الفجر": timings.fajr,
-            "الشروق": timings.sunrise,
-            "الظهر": timings.dhuhr,
-            "العصر": timings.asr,
-            "المغرب": timings.maghrib,
-            "العشاء": timings.isha,
-          };
+    final timings = _prayerResponse?.data.timings;
+    final displayTimes = timings?.toDisplayMap() ?? const <String, String>{};
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(
+          color: Color(0xFFCDA944),
+          size: 30,
+        ),
+        actions: [
+          IconButton(
+            onPressed: _isRefreshing
+                ? null
+                : () => _loadPrayerTimes(forceRefresh: true),
+            icon: _isRefreshing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+          ),
+        ],
+      ),
       drawer: _buildDrawer(),
       body: Stack(
         children: [
           _buildBackground(),
           SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-                const Text("دمشق وريفها 2026",
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  const Text(
+                    'مواقيت دمشق وريفها',
                     style: TextStyle(
-                        color: Color(0xFFCDA944),
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold)),
-                Text(nextPrayerName,
-                    style: const TextStyle(color: Colors.white, fontSize: 18)),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text(cloudMessage,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic)),
-                ),
-                Expanded(
-                  child: isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                              color: Color(0xFFCDA944)))
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 25),
-                          itemCount: displayTimes.length,
-                          itemBuilder: (context, index) {
-                            return _buildGlassCard(
-                                displayTimes.keys.elementAt(index),
-                                displayTimes.values.elementAt(index));
-                          },
-                        ),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final testTime =
-                        DateTime.now().add(const Duration(seconds: 5));
-                    await AndroidAlarmManager.oneShotAt(
-                        testTime, 999, playAdhanCallback,
-                        exact: true, wakeup: true);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text("سيعمل الأذان خلال 5 ثوانٍ...")));
-                  },
-                  style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.white10),
-                  child: const Text("تجربة صوت الأذان",
-                      style: TextStyle(color: Colors.white)),
-                ),
-                const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Text("بإشراف المبرمج ياسر",
-                      style: TextStyle(
+                      color: Color(0xFFCDA944),
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _prayerResponse == null
+                        ? 'تحميل البيانات...'
+                        : '${_prayerResponse!.data.date.readable} • ${_prayerResponse!.data.date.hijri.day} ${_prayerResponse!.data.date.hijri.month.ar}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_errorMessage != null) _buildErrorBanner(_errorMessage!),
+                  Expanded(
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFCDA944),
+                            ),
+                          )
+                        : displayTimes.isEmpty
+                            ? _buildEmptyState()
+                            : ListView.separated(
+                                physics: const BouncingScrollPhysics(),
+                                padding: const EdgeInsets.only(bottom: 16),
+                                itemCount: displayTimes.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, index) {
+                                  final title =
+                                      displayTimes.keys.elementAt(index);
+                                  final value =
+                                      displayTimes.values.elementAt(index);
+                                  return _buildGlassCard(title, value);
+                                },
+                              ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 16),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                        'إشراف المهندس ياسر',
+                        style: TextStyle(
                           color: Color(0xFFCDA944),
-                          fontWeight: FontWeight.bold)),
-                ),
-              ],
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -277,104 +270,177 @@ class _DamascusLiveAppState extends State<DamascusLiveApp> {
   Widget _buildBackground() {
     return Container(
       decoration: const BoxDecoration(
-          image: DecorationImage(
-              image: NetworkImage(
-                  'https://images.unsplash.com/photo-1542662565-7e4b66bae529'),
-              fit: BoxFit.cover)),
+        image: DecorationImage(
+          image: NetworkImage(AppConfig.backgroundImageUrl),
+          fit: BoxFit.cover,
+        ),
+      ),
       child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(color: Colors.black.withOpacity(0.6))),
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(color: Colors.black.withValues(alpha: 0.62)),
+      ),
     );
   }
 
   Widget _buildGlassCard(String name, String time) {
-    bool isNext = nextPrayerName.contains(name);
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-          color: isNext
-              ? Colors.white.withOpacity(0.15)
-              : Colors.white.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: isNext
-                  ? const Color(0xFFCDA944)
-                  : Colors.white.withOpacity(0.1))),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(time,
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            time,
             style: const TextStyle(
-                color: Color(0xFFCDA944),
-                fontSize: 26,
-                fontWeight: FontWeight.bold)),
-        Text(name, style: const TextStyle(color: Colors.white, fontSize: 20)),
-      ]),
+              color: Color(0xFFCDA944),
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildDrawer() {
+  Widget _buildErrorBanner(String message) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.redAccent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.cloud_off, color: Color(0xFFCDA944), size: 50),
+          const SizedBox(height: 12),
+          const Text(
+            'لا توجد بيانات متاحة حالياً',
+            style: TextStyle(color: Colors.white, fontSize: 18),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _isRefreshing
+                ? null
+                : () => _loadPrayerTimes(forceRefresh: true),
+            icon: const Icon(Icons.refresh),
+            label: const Text('إعادة المحاولة'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Drawer _buildDrawer() {
     return Drawer(
-      backgroundColor: const Color(0xFF020C1B).withOpacity(0.98),
-      child: Column(children: [
-        const DrawerHeader(
-            child: Icon(Icons.mosque, size: 70, color: Color(0xFFCDA944))),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(15)),
-          child:
-              QrImageView(data: appLink, version: QrVersions.auto, size: 140.0),
+      backgroundColor: const Color(0xFF020C1B).withValues(alpha: 0.98),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            const Icon(Icons.mosque, size: 72, color: Color(0xFFCDA944)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: QrImageView(
+                data: AppConfig.appLink,
+                version: QrVersions.auto,
+                size: 140,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.refresh, color: Color(0xFFCDA944)),
+              title: const Text(
+                'تحديث البيانات',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                await _loadPrayerTimes(forceRefresh: true);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.alarm, color: Color(0xFFCDA944)),
+              title: const Text(
+                'إعادة جدولة التنبيهات',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                if (_prayerResponse != null) {
+                  await AdhanScheduler.schedulePrayerAlarms(_prayerResponse!);
+                  _showSnackBar('تمت إعادة جدولة التنبيهات');
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.volume_up, color: Color(0xFFCDA944)),
+              title: const Text(
+                'تجربة الأذان داخل التطبيق',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                await _playInAppAdhan();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share, color: Color(0xFFCDA944)),
+              title: const Text(
+                'إرسال الرابط',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () => Share.share('إمساكية دمشق:\n${AppConfig.appLink}'),
+            ),
+            const Spacer(),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 20),
+              child: Text(
+                'Adhan notifications are driven by native Android scheduling.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 20),
-        ListTile(
-          leading: const Icon(Icons.refresh, color: Color(0xFFCDA944)),
-          title: const Text("تحديث البيانات",
-              style: TextStyle(color: Colors.white)),
-          onTap: () {
-            Navigator.pop(context);
-            _initialLoad();
-          },
-        ),
-      ]),
+      ),
     );
   }
-}
-
-// --- Prayer Model Classes ---
-Prayer prayerFromJson(String str) => Prayer.fromJson(json.decode(str));
-
-class Prayer {
-  int code;
-  String status;
-  Data data;
-  Prayer({required this.code, required this.status, required this.data});
-  factory Prayer.fromJson(Map<String, dynamic> json) => Prayer(
-      code: json["code"],
-      status: json["status"],
-      data: Data.fromJson(json["data"]));
-}
-
-class Data {
-  Timings timings;
-  Data({required this.timings});
-  factory Data.fromJson(Map<String, dynamic> json) =>
-      Data(timings: Timings.fromJson(json["timings"]));
-}
-
-class Timings {
-  String fajr, sunrise, dhuhr, asr, maghrib, isha;
-  Timings(
-      {required this.fajr,
-      required this.sunrise,
-      required this.dhuhr,
-      required this.asr,
-      required this.maghrib,
-      required this.isha});
-  factory Timings.fromJson(Map<String, dynamic> json) => Timings(
-      fajr: json["Fajr"],
-      sunrise: json["Sunrise"],
-      dhuhr: json["Dhuhr"],
-      asr: json["Asr"],
-      maghrib: json["Maghrib"],
-      isha: json["Isha"]);
 }

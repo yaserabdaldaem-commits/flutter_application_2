@@ -1,0 +1,333 @@
+[33mcommit 8fd9a508be2d4ff42b7b3e4a8b0c4ea515039e8a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Yasser <yasserabdaldaem@gmail.com>
+Date:   Sat Apr 4 23:11:45 2026 +0300
+
+    error in take a date
+
+[1mdiff --git a/.metadata b/.metadata[m
+[1mindex b02a7e4..89db5de 100644[m
+[1m--- a/.metadata[m
+[1m+++ b/.metadata[m
+[36m@@ -4,7 +4,7 @@[m
+ # This file should be version controlled and should not be manually edited.[m
+ [m
+ version:[m
+[31m-  revision: "17025dd88227cd9532c33fa78f5250d548d87e9a"[m
+[32m+[m[32m  revision: "ff37bef603469fb030f2b72995ab929ccfc227f0"[m
+   channel: "stable"[m
+ [m
+ project_type: app[m
+[36m@@ -13,26 +13,26 @@[m [mproject_type: app[m
+ migration:[m
+   platforms:[m
+     - platform: root[m
+[31m-      create_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[31m-      base_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[32m+[m[32m      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+[32m+[m[32m      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+     - platform: android[m
+[31m-      create_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[31m-      base_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[32m+[m[32m      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+[32m+[m[32m      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+     - platform: ios[m
+[31m-      create_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[31m-      base_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[32m+[m[32m      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+[32m+[m[32m      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+     - platform: linux[m
+[31m-      create_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[31m-      base_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[32m+[m[32m      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+[32m+[m[32m      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+     - platform: macos[m
+[31m-      create_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[31m-      base_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[32m+[m[32m      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+[32m+[m[32m      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+     - platform: web[m
+[31m-      create_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[31m-      base_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[32m+[m[32m      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+[32m+[m[32m      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+     - platform: windows[m
+[31m-      create_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[31m-      base_revision: 17025dd88227cd9532c33fa78f5250d548d87e9a[m
+[32m+[m[32m      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+[32m+[m[32m      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0[m
+ [m
+   # User provided section[m
+ [m
+[1mdiff --git a/android/.gitignore b/android/.gitignore[m
+[1mindex 55afd91..be3943c 100644[m
+[1m--- a/android/.gitignore[m
+[1m+++ b/android/.gitignore[m
+[36m@@ -5,6 +5,7 @@[m [mgradle-wrapper.jar[m
+ /gradlew.bat[m
+ /local.properties[m
+ GeneratedPluginRegistrant.java[m
+[32m+[m[32m.cxx/[m
+ [m
+ # Remember to never publicly share your keystore.[m
+ # See https://flutter.dev/to/reference-keystore[m
+[1mdiff --git a/android/app/build.gradle b/android/app/build.gradle[m
+[1mdeleted file mode 100644[m
+[1mindex 49fe453..0000000[m
+[1m--- a/android/app/build.gradle[m
+[1m+++ /dev/null[m
+[36m@@ -1,46 +0,0 @@[m
+[31m-plugins {[m
+[31m-    id "com.android.application"[m
+[31m-    id "kotlin-android"[m
+[31m-    id "dev.flutter.flutter-gradle-plugin"[m
+[31m-}[m
+[31m-[m
+[31m-android {[m
+[31m-    namespace = "com.example.flutter_application_2"[m
+[31m-    compileSdk = flutter.compileSdkVersion[m
+[31m-    ndkVersion = flutter.ndkVersion[m
+[31m-[m
+[31m-    compileOptions {[m
+[31m-        // تفعيل دعم ميزات جاوا الحديثة لمكتبة الإشعارات[m
+[31m-        coreLibraryDesugaringEnabled true [m
+[31m-        sourceCompatibility = JavaVersion.VERSION_1_8[m
+[31m-        targetCompatibility = JavaVersion.VERSION_1_8[m
+[31m-    }[m
+[31m-[m
+[31m-    kotlinOptions {[m
+[31m-        jvmTarget = JavaVersion.VERSION_1_8[m
+[31m-    }[m
+[31m-[m
+[31m-    defaultConfig {[m
+[31m-        applicationId = "com.example.flutter_application_2"[m
+[31m-        // ملاحظة للمهندس ياسر: مكتبة الإشعارات تحتاج minSdk 21 على الأقل[m
+[31m-        minSdk = 21 [m
+[31m-        targetSdk = flutter.targetSdkVersion[m
+[31m-        versionCode = flutter.versionCode[m
+[31m-        versionName = flutter.versionName[m
+[31m-    }[m
+[31m-[m
+[31m-    buildTypes {[m
+[31m-        release {[m
+[31m-            signingConfig = signingConfigs.debug[m
+[31m-        }[m
+[31m-    }[m
+[31m-}[m
+[31m-[m
+[31m-flutter {[m
+[31m-    source = "../.."[m
+[31m-}[m
+[31m-[m
+[31m-dependencies {[m
+[31m-    // السطر السحري لحل مشكلة التصدير[m
+[31m-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'[m
+[31m-}[m
+\ No newline at end of file[m
+[1mdiff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml[m
+[1mindex 43559df..16cebbd 100644[m
+[1m--- a/android/app/src/main/AndroidManifest.xml[m
+[1m+++ b/android/app/src/main/AndroidManifest.xml[m
+[36m@@ -1,13 +1,16 @@[m
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android">[m
+[31m-    [m
+[31m-    <uses-permission android:name="android.permission.INTERNET" />[m
+[31m-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />[m
+[31m-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />[m
+[32m+[m
+     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>[m
+[31m-    <uses-permission android:name="android.permission.WAKE_LOCK" />[m
+[31m-    <uses-permission android:name="android.permission.INTERNET" />[m
+[32m+[m[32m    <uses-permission android:name="android.permission.WAKE_LOCK"/>[m
+[32m+[m[32m    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>[m
+[32m+[m[41m    [m
+[32m+[m[32m    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />[m
+[32m+[m[41m    [m
+[32m+[m[32m    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>[m
+[32m+[m[32m    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>[m
+[32m+[m
+     <application[m
+[31m-        android:label="mouazen"[m
+[32m+[m[32m        android:label="damascus_dehan_app"[m
+         android:name="${applicationName}"[m
+         android:icon="@mipmap/ic_launcher">[m
+         [m
+[36m@@ -20,18 +23,35 @@[m
+             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"[m
+             android:hardwareAccelerated="true"[m
+             android:windowSoftInputMode="adjustResize">[m
+[31m-            [m
+             <meta-data[m
+               android:name="io.flutter.embedding.android.NormalTheme"[m
+               android:resource="@style/NormalTheme"[m
+               />[m
+[31m-            [m
+             <intent-filter>[m
+                 <action android:name="android.intent.action.MAIN"/>[m
+                 <category android:name="android.intent.category.LAUNCHER"/>[m
+             </intent-filter>[m
+         </activity>[m
+[32m+[m
+[32m+[m[32m        <service[m
+[32m+[m[32m            android:name="dev.fluttercommunity.plus.androidalarmmanager.AlarmService"[m
+[32m+[m[32m            android:permission="android.permission.BIND_JOB_SERVICE"[m
+[32m+[m[32m            android:exported="false"/>[m
+         [m
+[32m+[m[32m        <receiver[m
+[32m+[m[32m            android:name="dev.fluttercommunity.plus.androidalarmmanager.AlarmReceiver"[m
+[32m+[m[32m            android:exported="false"/>[m
+[32m+[m[41m            [m
+[32m+[m[32m        <receiver[m
+[32m+[m[32m            android:name="dev.fluttercommunity.plus.androidalarmmanager.RebootBroadcastReceiver"[m
+[32m+[m[32m            android:exported="false">[m
+[32m+[m[32m            <intent-filter>[m
+[32m+[m[32m                <action android:name="android.intent.action.BOOT_COMPLETED" />[m
+[32m+[m[32m                <action android:name="android.intent.action.TIME_SET" />[m
+[32m+[m[32m                <action android:name="android.intent.action.TIMEZONE_CHANGED" />[m
+[32m+[m[32m            </intent-filter>[m
+[32m+[m[32m        </receiver>[m
+[32m+[m
+         <meta-data[m
+             android:name="flutterEmbedding"[m
+             android:value="2" />[m
+[36m@@ -42,9 +62,5 @@[m
+             <action android:name="android.intent.action.PROCESS_TEXT"/>[m
+             <data android:mimeType="text/plain"/>[m
+         </intent>[m
+[31m-        <intent>[m
+[31m-            <action android:name="android.intent.action.DIAL" />[m
+[31m-            <data android:scheme="tel" />[m
+[31m-        </intent>[m
+     </queries>[m
+ </manifest>[m
+\ No newline at end of file[m
+[1mdiff --git a/android/app/src/main/kotlin/com/example/flutter_application_2/MainActivity.kt b/android/app/src/main/kotlin/com/example/flutter_application_2/MainActivity.kt[m
+[1mdeleted file mode 100644[m
+[1mindex f7ea08b..0000000[m
+[1m--- a/android/app/src/main/kotlin/com/example/flutter_application_2/MainActivity.kt[m
+[1m+++ /dev/null[m
+[36m@@ -1,5 +0,0 @@[m
+[31m-package com.example.flutter_application_2[m
+[31m-[m
+[31m-import io.flutter.embedding.android.FlutterActivity[m
+[31m-[m
+[31m-class MainActivity: FlutterActivity()[m
+[1mdiff --git a/android/app/src/main/res/mipmap-hdpi/ic_launcher.png b/android/app/src/main/res/mipmap-hdpi/ic_launcher.png[m
+[1mindex 3c99974..db77bb4 100644[m
+Binary files a/android/app/src/main/res/mipmap-hdpi/ic_launcher.png and b/android/app/src/main/res/mipmap-hdpi/ic_launcher.png differ
+[1mdiff --git a/android/app/src/main/res/mipmap-hdpi/launcher_icon.png b/android/app/src/main/res/mipmap-hdpi/launcher_icon.png[m
+[1mdeleted file mode 100644[m
+[1mindex 3c99974..0000000[m
+Binary files a/android/app/src/main/res/mipmap-hdpi/launcher_icon.png and /dev/null differ
+[1mdiff --git a/android/app/src/main/res/mipmap-mdpi/ic_launcher.png b/android/app/src/main/res/mipmap-mdpi/ic_launcher.png[m
+[1mindex 838fbb6..17987b7 100644[m
+Binary files a/android/app/src/main/res/mipmap-mdpi/ic_launcher.png and b/android/app/src/main/res/mipmap-mdpi/ic_launcher.png differ
+[1mdiff --git a/android/app/src/main/res/mipmap-mdpi/launcher_icon.png b/android/app/src/main/res/mipmap-mdpi/launcher_icon.png[m
+[1mdeleted file mode 100644[m
+[1mindex 838fbb6..0000000[m
+Binary files a/android/app/src/main/res/mipmap-mdpi/launcher_icon.png and /dev/null differ
+[1mdiff --git a/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png b/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png[m
+[1mindex dc2be92..09d4391 100644[m
+Binary files a/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png and b/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png differ
+[1mdiff --git a/android/app/src/main/res/mipmap-xhdpi/launcher_icon.png b/android/app/src/main/res/mipmap-xhdpi/launcher_icon.png[m
+[1mdeleted file mode 100644[m
+[1mindex dc2be92..0000000[m
+Binary files a/android/app/src/main/res/mipmap-xhdpi/launcher_icon.png and /dev/null differ
+[1mdiff --git a/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png b/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png[m
+[1mindex 3700194..d5f1c8d 100644[m
+Binary files a/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png and b/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png differ
+[1mdiff --git a/android/app/src/main/res/mipmap-xxhdpi/launcher_icon.png b/android/app/src/main/res/mipmap-xxhdpi/launcher_icon.png[m
+[1mdeleted file mode 100644[m
+[1mindex 3700194..0000000[m
+Binary files a/android/app/src/main/res/mipmap-xxhdpi/launcher_icon.png and /dev/null differ
+[1mdiff --git a/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png b/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png[m
+[1mindex 6d46800..4d6372e 100644[m
+Binary files a/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png and b/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png differ
+[1mdiff --git a/android/app/src/main/res/mipmap-xxxhdpi/launcher_icon.png b/android/app/src/main/res/mipmap-xxxhdpi/launcher_icon.png[m
+[1mdeleted file mode 100644[m
+[1mindex 6d46800..0000000[m
+Binary files a/android/app/src/main/res/mipmap-xxxhdpi/launcher_icon.png and /dev/null differ
+[1mdiff --git a/android/app/src/main/res/raw/adhan.mp3 b/android/app/src/main/res/raw/adhan.mp3[m
+[1mdeleted file mode 100644[m
+[1mindex a2b6b03..0000000[m
+Binary files a/android/app/src/main/res/raw/adhan.mp3 and /dev/null differ
+[1mdiff --git a/android/build.gradle b/android/build.gradle[m
+[1mdeleted file mode 100644[m
+[1mindex d2ffbff..0000000[m
+[1m--- a/android/build.gradle[m
+[1m+++ /dev/null[m
+[36m@@ -1,18 +0,0 @@[m
+[31m-allprojects {[m
+[31m-    repositories {[m
+[31m-        google()[m
+[31m-        mavenCentral()[m
+[31m-    }[m
+[31m-}[m
+[31m-[m
+[31m-rootProject.buildDir = "../build"[m
+[31m-subprojects {[m
+[31m-    project.buildDir = "${rootProject.buildDir}/${project.name}"[m
+[31m-}[m
+[31m-subprojects {[m
+[31m-    project.evaluationDependsOn(":app")[m
+[31m-}[m
+[31m-[m
+[31m-tasks.register("clean", Delete) {[m
+[31m-    delete rootProject.buildDir[m
+[31m-}[m
+[1mdiff --git a/android/gradle.properties b/android/gradle.properties[m
+[1mindex 312b9ad..fbee1d8 100644[m
+[1m--- a/android/gradle.properties[m
+[1m+++ b/android/gradle.properties[m
+[36m@@ -1,4 +1,2 @@[m
+[31m-org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError[m
+[32m+[m[32morg.gradle.jvmargs=-Xmx8G -XX:MaxMetaspaceSize=4G -XX:ReservedCodeCacheSize=512m -XX:+HeapDumpOnOutOfMemoryError[m
+ android.useAndroidX=true[m
+[31m-android.enableJetifier=false[m
+[31m-[m
+[1mdiff --git a/android/gradle/wrapper/gradle-wrapper.properties b/android/gradle/wrapper/gradle-wrapper.properties[m
+[1mindex aa49780..e4ef43f 100644[m
+[1m--- a/android/gradle/wrapper/gradle-wrapper.properties[m
+[1m+++ b/android/gradle/wrapper/gradle-wrapper.properties[m
+[36m@@ -2,4 +2,4 @@[m [mdistributionBase=GRADLE_USER_HOME[m
+ distributionPath=wrapper/dists[m
+ zipStoreBase=GRADLE_USER_HOME[m
+ zipStorePath=wrapper/dists[m
+[31m-distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-all.zip[m
+[32m+[m[32mdistributionUrl=https\://services.gradle.org/distributions/gradle-8.14-all.zip[m
+[1mdiff --git a/android/settings.gradle b/android/settings.gradle[m
+[1mdeleted file mode 100644[m
+[1mindex a42444d..0000000[m
+[1m--- a/android/settings.gradle[m
+[1m+++ /dev/null[m
+[36m@@ -1,25 +0,0 @@[m
+[31m-pluginManagement {[m
+[31m-    def flutterSdkPath = {[m
+[31m-        def properties = new Properties()[m
+[31m-        file("local.properties").withInputStream { properties.load(it) }[m
+[31m-        def flutterSdkPath = properties.getProperty("flutter.sdk")[m
+[31m-        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"[m
+[31m-        return flutterSdkPath[m
+[31m-    }()[m
+[31m-[m
+[31m-    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")[m
+[31m-[m
+[31m-    repositories {[m
+[31m-        google()[m
+[31m-        mavenCentral()[m
+[31m-        gradlePluginPortal()[m
+[31m-    }[m
+[31m-}[m
+[31m-[m
+[31m-plugins {[m
+[31m-    id "dev.flutter.flutter-plugin-loader" version "1.0.0"[m
+[31m-    id "com.android.application" version "8.2.1" apply false[m
+[31m-    id "org.jetbrains.kotlin.android" version "1.8.22" apply false[m
+[31m-}[m
+[31m-[m
+[31m-include ":app"[m
+[1mdiff --git a/lib/main.dart b/lib/main.dart[m
+[1mindex 727f724..d2cb6b6 100644[m
+[1m--- a/lib/main.dart[m
+[1m+++ b/lib/main.dart[m
+[36m@@ -1,16 +1,44 @@[m
+ i
